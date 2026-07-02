@@ -3,6 +3,7 @@ import { getUser } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/nextPath";
 import LoginForm from "./LoginForm";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const M = {
   ru: {
@@ -53,7 +54,10 @@ export default async function LoginPage({
   const oauthFailed = sp.error === "google";
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
+    <main className="relative flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher current={locale} />
+      </div>
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-600">

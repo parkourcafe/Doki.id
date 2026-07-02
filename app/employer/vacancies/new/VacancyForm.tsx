@@ -10,6 +10,8 @@ import {
   type RequiredDocument,
   type ScreeningQuestion,
 } from "@/lib/career";
+import { QUESTION_CATEGORIES, type QuestionTemplate } from "@/lib/questionTemplates";
+import { REQUIRED_DOCS, OPTIONAL_DOCS, type DocumentTemplate } from "@/lib/documentTemplates";
 import { createVacancy } from "@/app/employer/actions";
 
 const M = {
@@ -33,6 +35,11 @@ const M = {
     docs: "Required documents",
     docsHint: "Documents the candidate must upload.",
     addDoc: "+ Add document",
+    fromDocLibrary: "Choose from library",
+    hideDocLibrary: "Hide library",
+    docLibHint: "Common documents — tap to add, then toggle Required if needed.",
+    grpRequired: "Often required",
+    grpOptional: "Optional",
     docType: "Type",
     docLabel: "Label",
     reqd: "Required",
@@ -40,6 +47,10 @@ const M = {
     questions: "Screening questions",
     questionsHint: "Questions candidates answer when applying.",
     addQuestion: "+ Add question",
+    fromLibrary: "Choose from library",
+    hideLibrary: "Hide library",
+    libraryHint: "Ready-made questions — tap to add, then edit if needed.",
+    added: "Added",
     question: "Question",
     qText: "Text answer",
     qYesNo: "Yes / No",
@@ -70,6 +81,11 @@ const M = {
     docs: "Dokumen wajib",
     docsHint: "Dokumen yang harus diunggah kandidat.",
     addDoc: "+ Tambah dokumen",
+    fromDocLibrary: "Pilih dari pustaka",
+    hideDocLibrary: "Sembunyikan pustaka",
+    docLibHint: "Dokumen umum — ketuk untuk menambah, lalu atur Wajib bila perlu.",
+    grpRequired: "Sering wajib",
+    grpOptional: "Opsional",
     docType: "Jenis",
     docLabel: "Label",
     reqd: "Wajib",
@@ -77,6 +93,10 @@ const M = {
     questions: "Pertanyaan seleksi",
     questionsHint: "Pertanyaan yang dijawab kandidat saat melamar.",
     addQuestion: "+ Tambah pertanyaan",
+    fromLibrary: "Pilih dari pustaka",
+    hideLibrary: "Sembunyikan pustaka",
+    libraryHint: "Pertanyaan siap pakai — ketuk untuk menambah, lalu ubah bila perlu.",
+    added: "Ditambahkan",
     question: "Pertanyaan",
     qText: "Jawaban teks",
     qYesNo: "Ya / Tidak",
@@ -107,6 +127,11 @@ const M = {
     docs: "Обязательные документы",
     docsHint: "Документы, которые кандидат должен загрузить.",
     addDoc: "+ Добавить документ",
+    fromDocLibrary: "Выбрать из библиотеки",
+    hideDocLibrary: "Скрыть библиотеку",
+    docLibHint: "Частые документы — нажмите, чтобы добавить, потом можно менять обязательность.",
+    grpRequired: "Обычно обязательные",
+    grpOptional: "По желанию",
     docType: "Тип",
     docLabel: "Название",
     reqd: "Обязательно",
@@ -114,6 +139,10 @@ const M = {
     questions: "Вопросы скрининга",
     questionsHint: "Вопросы, на которые отвечает кандидат.",
     addQuestion: "+ Добавить вопрос",
+    fromLibrary: "Выбрать из библиотеки",
+    hideLibrary: "Скрыть библиотеку",
+    libraryHint: "Готовые вопросы — нажмите, чтобы добавить, потом можно отредактировать.",
+    added: "Добавлен",
     question: "Вопрос",
     qText: "Текстовый ответ",
     qYesNo: "Да / Нет",
@@ -144,6 +173,11 @@ const M = {
     docs: "Majburiy hujjatlar",
     docsHint: "Nomzod yuklashi shart bo‘lgan hujjatlar.",
     addDoc: "+ Hujjat qo‘shish",
+    fromDocLibrary: "Kutubxonadan tanlash",
+    hideDocLibrary: "Kutubxonani yashirish",
+    docLibHint: "Keng tarqalgan hujjatlar — qo‘shish uchun bosing, keyin majburiyligini o‘zgartiring.",
+    grpRequired: "Ko‘pincha majburiy",
+    grpOptional: "Ixtiyoriy",
     docType: "Turi",
     docLabel: "Nomi",
     reqd: "Majburiy",
@@ -151,6 +185,10 @@ const M = {
     questions: "Saralash savollari",
     questionsHint: "Nomzod ariza berishda javob beradigan savollar.",
     addQuestion: "+ Savol qo‘shish",
+    fromLibrary: "Kutubxonadan tanlash",
+    hideLibrary: "Kutubxonani yashirish",
+    libraryHint: "Tayyor savollar — qo‘shish uchun bosing, keyin tahrirlash mumkin.",
+    added: "Qo‘shildi",
     question: "Savol",
     qText: "Matnli javob",
     qYesNo: "Ha / Yo‘q",
@@ -185,6 +223,8 @@ export default function VacancyForm({
     { type: "cv", label: docTypeLabel(locale, "cv"), required: true },
   ]);
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [showDocLibrary, setShowDocLibrary] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -197,6 +237,13 @@ export default function VacancyForm({
   function removeDoc(i: number) {
     setDocs((p) => p.filter((_, idx) => idx !== i));
   }
+  function addDocTemplate(tpl: DocumentTemplate) {
+    setDocs((p) =>
+      p.some((d) => d.type === tpl.type)
+        ? p
+        : [...p, { type: tpl.type, label: docTypeLabel(locale, tpl.type), required: tpl.required }],
+    );
+  }
 
   function addQuestion() {
     setQuestions((p) => [...p, { question: "", type: "text" }]);
@@ -206,6 +253,12 @@ export default function VacancyForm({
   }
   function removeQuestion(i: number) {
     setQuestions((p) => p.filter((_, idx) => idx !== i));
+  }
+  function addTemplate(tpl: QuestionTemplate) {
+    const text = tpl.q[locale];
+    setQuestions((p) =>
+      p.some((q) => q.question === text) ? p : [...p, { question: text, type: tpl.type }],
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -349,9 +402,47 @@ export default function VacancyForm({
             </div>
           </div>
         ))}
-        <button type="button" onClick={addDoc} className="btn-ghost">
-          {t.addDoc}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={addDoc} className="btn-ghost">
+            {t.addDoc}
+          </button>
+          <button type="button" onClick={() => setShowDocLibrary((v) => !v)} className="btn-ghost">
+            {showDocLibrary ? t.hideDocLibrary : t.fromDocLibrary}
+          </button>
+        </div>
+
+        {showDocLibrary && (
+          <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">{t.docLibHint}</p>
+            {[
+              { title: t.grpRequired, items: REQUIRED_DOCS },
+              { title: t.grpOptional, items: OPTIONAL_DOCS },
+            ].map((group) => (
+              <div key={group.title}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {group.title}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.items.map((tpl) => {
+                    const already = docs.some((d) => d.type === tpl.type);
+                    return (
+                      <button
+                        key={tpl.type}
+                        type="button"
+                        disabled={already}
+                        onClick={() => addDocTemplate(tpl)}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-default disabled:opacity-60 disabled:hover:border-slate-200 disabled:hover:bg-white"
+                      >
+                        {already && <span className="text-green-600">✓</span>}
+                        {docTypeLabel(locale, tpl.type)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Screening questions */}
@@ -386,9 +477,50 @@ export default function VacancyForm({
             </div>
           </div>
         ))}
-        <button type="button" onClick={addQuestion} className="btn-ghost">
-          {t.addQuestion}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={addQuestion} className="btn-ghost">
+            {t.addQuestion}
+          </button>
+          <button type="button" onClick={() => setShowLibrary((v) => !v)} className="btn-ghost">
+            {showLibrary ? t.hideLibrary : t.fromLibrary}
+          </button>
+        </div>
+
+        {showLibrary && (
+          <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">{t.libraryHint}</p>
+            {QUESTION_CATEGORIES.map((cat) => (
+              <div key={cat.key}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {cat.label[locale]}
+                </p>
+                <div className="space-y-1.5">
+                  {cat.questions.map((tpl) => {
+                    const text = tpl.q[locale];
+                    const already = questions.some((q) => q.question === text);
+                    return (
+                      <button
+                        key={text}
+                        type="button"
+                        disabled={already}
+                        onClick={() => addTemplate(tpl)}
+                        className="flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-default disabled:opacity-60 disabled:hover:border-slate-200 disabled:hover:bg-white"
+                      >
+                        <span className="text-slate-700">
+                          {already && <span className="mr-1 text-green-600">✓</span>}
+                          {text}
+                        </span>
+                        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-500">
+                          {already ? t.added : tpl.type === "yes_no" ? t.qYesNo : t.qText}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}

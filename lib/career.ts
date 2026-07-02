@@ -5,9 +5,16 @@ import type { Locale } from "./i18n";
 export type DocType =
   | "cv"
   | "ktp"
+  | "passport"
+  | "work_permit"
   | "diploma"
   | "health_cert"
   | "certificate"
+  | "driver_license"
+  | "police_check"
+  | "reference"
+  | "portfolio"
+  | "photo"
   | "other";
 
 export type RequiredDocument = {
@@ -108,9 +115,16 @@ export type ApplicationAnswer = {
 export const DOC_TYPES: DocType[] = [
   "cv",
   "ktp",
+  "passport",
+  "work_permit",
   "diploma",
   "health_cert",
   "certificate",
+  "driver_license",
+  "police_check",
+  "reference",
+  "portfolio",
+  "photo",
   "other",
 ];
 
@@ -123,33 +137,61 @@ const DOC_LABELS: Record<Locale, Record<DocType, string>> = {
   en: {
     cv: "CV / Resume",
     ktp: "KTP (ID card)",
+    passport: "Passport",
+    work_permit: "Work permit / visa (KITAS)",
     diploma: "Diploma",
     health_cert: "Health certificate",
     certificate: "Certificate",
+    driver_license: "Driver's license",
+    police_check: "Police clearance (SKCK)",
+    reference: "Reference letter",
+    portfolio: "Portfolio",
+    photo: "Photo",
     other: "Other document",
   },
   id: {
     cv: "CV / Resume",
     ktp: "KTP",
+    passport: "Paspor",
+    work_permit: "Izin kerja / visa (KITAS)",
     diploma: "Ijazah",
     health_cert: "Surat sehat",
     certificate: "Sertifikat",
+    driver_license: "SIM",
+    police_check: "SKCK",
+    reference: "Surat referensi",
+    portfolio: "Portofolio",
+    photo: "Foto",
     other: "Dokumen lain",
   },
   ru: {
     cv: "Резюме (CV)",
     ktp: "Удостоверение личности",
+    passport: "Паспорт",
+    work_permit: "Разрешение на работу / виза",
     diploma: "Диплом",
     health_cert: "Медсправка",
     certificate: "Сертификат",
+    driver_license: "Водительские права",
+    police_check: "Справка о несудимости",
+    reference: "Рекомендательное письмо",
+    portfolio: "Портфолио",
+    photo: "Фотография",
     other: "Другой документ",
   },
   uz: {
     cv: "Rezyume (CV)",
     ktp: "Shaxsni tasdiqlovchi hujjat",
+    passport: "Pasport",
+    work_permit: "Ish ruxsatnomasi / viza",
     diploma: "Diplom",
     health_cert: "Tibbiy maʼlumotnoma",
     certificate: "Sertifikat",
+    driver_license: "Haydovchilik guvohnomasi",
+    police_check: "Sudlanmaganlik maʼlumotnomasi",
+    reference: "Tavsiyanoma",
+    portfolio: "Portfolio",
+    photo: "Fotosurat",
     other: "Boshqa hujjat",
   },
 };
