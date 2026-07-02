@@ -211,7 +211,10 @@ export function timeAgo(iso: string, locale: Locale): string {
   return L.d(day);
 }
 
-/** Публичный адрес приложения (для apply-ссылок и QR). */
+/** Публичный адрес приложения (для apply-ссылок и QR).
+ * Терпим к значению без протокола (`doki-id.vercel.app`) — иначе
+ * `new URL()` в layout уронит сборку с TypeError: Invalid URL. */
 export function appBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || "https://doki.help").replace(/\/$/, "");
+  const raw = (process.env.NEXT_PUBLIC_APP_URL || "https://doki.help").trim().replace(/\/$/, "");
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 }

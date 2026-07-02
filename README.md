@@ -57,10 +57,16 @@ npm run dev                  # http://localhost:3000
   либо выполните SQL из файла миграции в SQL Editor.
 
 ## Деплой на Vercel
-1. Залить этот каталог в новый GitHub-репозиторий (см. ниже).
-2. Vercel → New Project → импортировать репозиторий (Next.js определится сам).
-3. Env-переменные (см. таблицу выше) для Production и Preview.
-4. Deploy. Затем Settings → Domains → добавить новый домен, настроить DNS.
+Приложение лежит в корне репозитория; `vercel.json` задаёт framework
+`nextjs`. В настройках проекта (Settings → Build and Deployment):
+1. **Root Directory** — пусто.
+2. **Framework Preset** — Next.js; Override у Output Directory выключить,
+   иначе будет ошибка «No Output Directory named public».
+3. Env-переменные (см. таблицу выше / `.env.example`) для Production и
+   Preview. `NEXT_PUBLIC_APP_URL` — обязательно с `https://`.
+4. Settings → Deployment Protection → Vercel Authentication = **Disabled**
+   (страница отклика должна открываться без логина).
+5. Deploy. Затем Settings → Domains → добавить новый домен, настроить DNS.
 
 ## Supabase Auth (обязательно для входа)
 Supabase → Authentication → URL Configuration:
