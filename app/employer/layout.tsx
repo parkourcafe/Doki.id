@@ -4,6 +4,7 @@ import { getUser } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { signOut } from "@/app/login/actions";
 import SignOutButton from "@/components/SignOutButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const M = {
   en: { brand: "Doki for employers", newVacancy: "+ New vacancy", vacancies: "Vacancies", signOut: "Sign out" },
@@ -30,6 +31,7 @@ export default async function EmployerLayout({
             {t.brand}
           </Link>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher current={locale} />
             <Link href="/employer/vacancies/new" className="btn-primary">
               {t.newVacancy}
             </Link>

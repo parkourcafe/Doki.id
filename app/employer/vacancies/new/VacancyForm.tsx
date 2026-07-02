@@ -11,6 +11,7 @@ import {
   type ScreeningQuestion,
 } from "@/lib/career";
 import { QUESTION_CATEGORIES, type QuestionTemplate } from "@/lib/questionTemplates";
+import { REQUIRED_DOCS, OPTIONAL_DOCS, type DocumentTemplate } from "@/lib/documentTemplates";
 import { createVacancy } from "@/app/employer/actions";
 
 const M = {
@@ -34,6 +35,11 @@ const M = {
     docs: "Required documents",
     docsHint: "Documents the candidate must upload.",
     addDoc: "+ Add document",
+    fromDocLibrary: "Choose from library",
+    hideDocLibrary: "Hide library",
+    docLibHint: "Common documents — tap to add, then toggle Required if needed.",
+    grpRequired: "Often required",
+    grpOptional: "Optional",
     docType: "Type",
     docLabel: "Label",
     reqd: "Required",
@@ -75,6 +81,11 @@ const M = {
     docs: "Dokumen wajib",
     docsHint: "Dokumen yang harus diunggah kandidat.",
     addDoc: "+ Tambah dokumen",
+    fromDocLibrary: "Pilih dari pustaka",
+    hideDocLibrary: "Sembunyikan pustaka",
+    docLibHint: "Dokumen umum — ketuk untuk menambah, lalu atur Wajib bila perlu.",
+    grpRequired: "Sering wajib",
+    grpOptional: "Opsional",
     docType: "Jenis",
     docLabel: "Label",
     reqd: "Wajib",
@@ -116,6 +127,11 @@ const M = {
     docs: "Обязательные документы",
     docsHint: "Документы, которые кандидат должен загрузить.",
     addDoc: "+ Добавить документ",
+    fromDocLibrary: "Выбрать из библиотеки",
+    hideDocLibrary: "Скрыть библиотеку",
+    docLibHint: "Частые документы — нажмите, чтобы добавить, потом можно менять обязательность.",
+    grpRequired: "Обычно обязательные",
+    grpOptional: "По желанию",
     docType: "Тип",
     docLabel: "Название",
     reqd: "Обязательно",
@@ -157,6 +173,11 @@ const M = {
     docs: "Majburiy hujjatlar",
     docsHint: "Nomzod yuklashi shart bo‘lgan hujjatlar.",
     addDoc: "+ Hujjat qo‘shish",
+    fromDocLibrary: "Kutubxonadan tanlash",
+    hideDocLibrary: "Kutubxonani yashirish",
+    docLibHint: "Keng tarqalgan hujjatlar — qo‘shish uchun bosing, keyin majburiyligini o‘zgartiring.",
+    grpRequired: "Ko‘pincha majburiy",
+    grpOptional: "Ixtiyoriy",
     docType: "Turi",
     docLabel: "Nomi",
     reqd: "Majburiy",
@@ -203,6 +224,7 @@ export default function VacancyForm({
   ]);
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showDocLibrary, setShowDocLibrary] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -214,6 +236,13 @@ export default function VacancyForm({
   }
   function removeDoc(i: number) {
     setDocs((p) => p.filter((_, idx) => idx !== i));
+  }
+  function addDocTemplate(tpl: DocumentTemplate) {
+    setDocs((p) =>
+      p.some((d) => d.type === tpl.type)
+        ? p
+        : [...p, { type: tpl.type, label: docTypeLabel(locale, tpl.type), required: tpl.required }],
+    );
   }
 
   function addQuestion() {
@@ -373,9 +402,47 @@ export default function VacancyForm({
             </div>
           </div>
         ))}
-        <button type="button" onClick={addDoc} className="btn-ghost">
-          {t.addDoc}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={addDoc} className="btn-ghost">
+            {t.addDoc}
+          </button>
+          <button type="button" onClick={() => setShowDocLibrary((v) => !v)} className="btn-ghost">
+            {showDocLibrary ? t.hideDocLibrary : t.fromDocLibrary}
+          </button>
+        </div>
+
+        {showDocLibrary && (
+          <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">{t.docLibHint}</p>
+            {[
+              { title: t.grpRequired, items: REQUIRED_DOCS },
+              { title: t.grpOptional, items: OPTIONAL_DOCS },
+            ].map((group) => (
+              <div key={group.title}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {group.title}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.items.map((tpl) => {
+                    const already = docs.some((d) => d.type === tpl.type);
+                    return (
+                      <button
+                        key={tpl.type}
+                        type="button"
+                        disabled={already}
+                        onClick={() => addDocTemplate(tpl)}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-default disabled:opacity-60 disabled:hover:border-slate-200 disabled:hover:bg-white"
+                      >
+                        {already && <span className="text-green-600">✓</span>}
+                        {docTypeLabel(locale, tpl.type)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Screening questions */}
