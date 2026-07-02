@@ -1,0 +1,6 @@
+# Supabase CLI config. project_id — ref проекта.
+# Тот же проект, что и Doki (career-таблицы уже применены):
+project_id = "uuopxzlcmzdtwebottar"
+
+[db]
+schemas = ["public"]
