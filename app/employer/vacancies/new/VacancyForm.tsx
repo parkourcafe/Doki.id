@@ -10,6 +10,7 @@ import {
   type RequiredDocument,
   type ScreeningQuestion,
 } from "@/lib/career";
+import { QUESTION_CATEGORIES, type QuestionTemplate } from "@/lib/questionTemplates";
 import { createVacancy } from "@/app/employer/actions";
 
 const M = {
@@ -40,6 +41,10 @@ const M = {
     questions: "Screening questions",
     questionsHint: "Questions candidates answer when applying.",
     addQuestion: "+ Add question",
+    fromLibrary: "Choose from library",
+    hideLibrary: "Hide library",
+    libraryHint: "Ready-made questions — tap to add, then edit if needed.",
+    added: "Added",
     question: "Question",
     qText: "Text answer",
     qYesNo: "Yes / No",
@@ -77,6 +82,10 @@ const M = {
     questions: "Pertanyaan seleksi",
     questionsHint: "Pertanyaan yang dijawab kandidat saat melamar.",
     addQuestion: "+ Tambah pertanyaan",
+    fromLibrary: "Pilih dari pustaka",
+    hideLibrary: "Sembunyikan pustaka",
+    libraryHint: "Pertanyaan siap pakai — ketuk untuk menambah, lalu ubah bila perlu.",
+    added: "Ditambahkan",
     question: "Pertanyaan",
     qText: "Jawaban teks",
     qYesNo: "Ya / Tidak",
@@ -114,6 +123,10 @@ const M = {
     questions: "Вопросы скрининга",
     questionsHint: "Вопросы, на которые отвечает кандидат.",
     addQuestion: "+ Добавить вопрос",
+    fromLibrary: "Выбрать из библиотеки",
+    hideLibrary: "Скрыть библиотеку",
+    libraryHint: "Готовые вопросы — нажмите, чтобы добавить, потом можно отредактировать.",
+    added: "Добавлен",
     question: "Вопрос",
     qText: "Текстовый ответ",
     qYesNo: "Да / Нет",
@@ -151,6 +164,10 @@ const M = {
     questions: "Saralash savollari",
     questionsHint: "Nomzod ariza berishda javob beradigan savollar.",
     addQuestion: "+ Savol qo‘shish",
+    fromLibrary: "Kutubxonadan tanlash",
+    hideLibrary: "Kutubxonani yashirish",
+    libraryHint: "Tayyor savollar — qo‘shish uchun bosing, keyin tahrirlash mumkin.",
+    added: "Qo‘shildi",
     question: "Savol",
     qText: "Matnli javob",
     qYesNo: "Ha / Yo‘q",
@@ -185,6 +202,7 @@ export default function VacancyForm({
     { type: "cv", label: docTypeLabel(locale, "cv"), required: true },
   ]);
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -206,6 +224,12 @@ export default function VacancyForm({
   }
   function removeQuestion(i: number) {
     setQuestions((p) => p.filter((_, idx) => idx !== i));
+  }
+  function addTemplate(tpl: QuestionTemplate) {
+    const text = tpl.q[locale];
+    setQuestions((p) =>
+      p.some((q) => q.question === text) ? p : [...p, { question: text, type: tpl.type }],
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -386,9 +410,50 @@ export default function VacancyForm({
             </div>
           </div>
         ))}
-        <button type="button" onClick={addQuestion} className="btn-ghost">
-          {t.addQuestion}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={addQuestion} className="btn-ghost">
+            {t.addQuestion}
+          </button>
+          <button type="button" onClick={() => setShowLibrary((v) => !v)} className="btn-ghost">
+            {showLibrary ? t.hideLibrary : t.fromLibrary}
+          </button>
+        </div>
+
+        {showLibrary && (
+          <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">{t.libraryHint}</p>
+            {QUESTION_CATEGORIES.map((cat) => (
+              <div key={cat.key}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {cat.label[locale]}
+                </p>
+                <div className="space-y-1.5">
+                  {cat.questions.map((tpl) => {
+                    const text = tpl.q[locale];
+                    const already = questions.some((q) => q.question === text);
+                    return (
+                      <button
+                        key={text}
+                        type="button"
+                        disabled={already}
+                        onClick={() => addTemplate(tpl)}
+                        className="flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-default disabled:opacity-60 disabled:hover:border-slate-200 disabled:hover:bg-white"
+                      >
+                        <span className="text-slate-700">
+                          {already && <span className="mr-1 text-green-600">✓</span>}
+                          {text}
+                        </span>
+                        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-500">
+                          {already ? t.added : tpl.type === "yes_no" ? t.qYesNo : t.qText}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
