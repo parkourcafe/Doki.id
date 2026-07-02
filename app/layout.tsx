@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { getLocale } from "@/lib/i18n";
+import { appBaseUrl } from "@/lib/career";
 import YandexMetrika from "@/components/YandexMetrika";
 import "./globals.css";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://doki.help";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(APP_URL),
+  metadataBase: new URL(appBaseUrl()),
   title: { default: "Doki — apply & hiring", template: "%s · Doki" },
   description:
     "Create a vacancy, share a link, and receive structured applications. Candidates apply without registration.",
