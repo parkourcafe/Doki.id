@@ -21,9 +21,7 @@ alter table vacancies add column if not exists views_count integer not null defa
 do $$ begin
   alter table applications add constraint uq_application_per_phone
     unique (vacancy_id, whatsapp);
--- unique constraint creates a backing index of the same name; a re-run
--- raises duplicate_table (42P07) on that index, not duplicate_object.
-exception when duplicate_object or duplicate_table then null; end $$;
+exception when duplicate_object then null; end $$;
 
 -- Rate-limit lookup index (ip_hash + recent time).
 create index if not exists idx_applications_ip_hash_created

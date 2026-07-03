@@ -45,6 +45,59 @@ export function sourceLabel(s: string): string {
   return SOURCE_LABELS[s as Source] ?? SOURCE_LABELS.other;
 }
 
+// ===================== Профиль кандидата (всё по желанию) =============
+
+export type ProfileFieldKey =
+  | "instagram" | "facebook" | "linkedin" | "portfolio"
+  | "experience" | "prev_company" | "prev_contact"
+  | "address" | "salary_expectation" | "available_from";
+
+export type CandidateProfile = Partial<Record<ProfileFieldKey, string>>;
+
+export const PROFILE_FIELDS: { key: ProfileFieldKey; kind: "url" | "text" | "textarea" }[] = [
+  { key: "instagram", kind: "url" },
+  { key: "facebook", kind: "url" },
+  { key: "linkedin", kind: "url" },
+  { key: "portfolio", kind: "url" },
+  { key: "experience", kind: "textarea" },
+  { key: "prev_company", kind: "text" },
+  { key: "prev_contact", kind: "text" },
+  { key: "address", kind: "text" },
+  { key: "salary_expectation", kind: "text" },
+  { key: "available_from", kind: "text" },
+];
+
+const PROFILE_LABELS: Record<Locale, Record<ProfileFieldKey, string>> = {
+  en: {
+    instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", portfolio: "Portfolio / website",
+    experience: "Work experience", prev_company: "Previous employer", prev_contact: "Reference contact (phone/email)",
+    address: "Address / city", salary_expectation: "Expected salary", available_from: "Available from",
+  },
+  id: {
+    instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", portfolio: "Portofolio / situs",
+    experience: "Pengalaman kerja", prev_company: "Perusahaan sebelumnya", prev_contact: "Kontak referensi (telp/email)",
+    address: "Alamat / kota", salary_expectation: "Gaji diharapkan", available_from: "Bisa mulai kerja",
+  },
+  ru: {
+    instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", portfolio: "Портфолио / сайт",
+    experience: "Опыт работы", prev_company: "Прошлый работодатель", prev_contact: "Контакт для рекомендации (тел./email)",
+    address: "Адрес / город", salary_expectation: "Желаемая зарплата", available_from: "Может выйти с",
+  },
+  uz: {
+    instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", portfolio: "Portfolio / sayt",
+    experience: "Ish tajribasi", prev_company: "Oldingi ish beruvchi", prev_contact: "Referens kontakti (tel./email)",
+    address: "Manzil / shahar", salary_expectation: "Kutilayotgan maosh", available_from: "Ishga chiqa oladi",
+  },
+};
+
+export function profileFieldLabel(locale: Locale, key: ProfileFieldKey): string {
+  return (PROFILE_LABELS[locale] ?? PROFILE_LABELS.en)[key];
+}
+
+export function isUrlField(key: ProfileFieldKey): boolean {
+  return PROFILE_FIELDS.find((f) => f.key === key)?.kind === "url";
+}
+
 export type EmployerProfile = {
   id: string;
   user_id: string;
@@ -211,10 +264,7 @@ export function timeAgo(iso: string, locale: Locale): string {
   return L.d(day);
 }
 
-/** Публичный адрес приложения (для apply-ссылок и QR).
- * Терпим к значению без протокола (`doki-id.vercel.app`) — иначе
- * `new URL()` в layout уронит сборку с TypeError: Invalid URL. */
+/** Публичный адрес приложения (для apply-ссылок и QR). */
 export function appBaseUrl(): string {
-  const raw = (process.env.NEXT_PUBLIC_APP_URL || "https://doki.help").trim().replace(/\/$/, "");
-  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return (process.env.NEXT_PUBLIC_APP_URL || "https://doki.help").replace(/\/$/, "");
 }

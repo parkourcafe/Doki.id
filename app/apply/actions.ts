@@ -2,7 +2,7 @@
 
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { normalizeWhatsapp, type Source } from "@/lib/career";
+import { normalizeWhatsapp, type Source, type CandidateProfile } from "@/lib/career";
 import { currentIpHash, verifyTurnstile } from "@/lib/antispam";
 import { sendNewApplicationEmail } from "@/lib/email";
 import { getLocale } from "@/lib/i18n";
@@ -56,6 +56,7 @@ export type SubmitApplicationInput = {
   turnstileToken?: string | null;
   answers: { question: string; type: string; answer: string }[];
   documents: { type: string; label: string; path: string; name: string; size: number }[];
+  profile: CandidateProfile;
   docsComplete: number;
   docsTotal: number;
 };
@@ -91,6 +92,7 @@ export async function submitApplication(input: SubmitApplicationInput): Promise<
     p_source: input.source,
     p_ip_hash: ipHash,
     p_user_id: user?.id ?? null,
+    p_profile: input.profile ?? {},
   });
 
   if (error) {

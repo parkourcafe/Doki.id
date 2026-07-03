@@ -9,9 +9,13 @@ import {
   ACCEPTED_MIME,
   MAX_FILE_BYTES,
   isValidWhatsapp,
+  PROFILE_FIELDS,
+  profileFieldLabel,
+  isUrlField,
   type RequiredDocument,
   type ScreeningQuestion,
   type Source,
+  type CandidateProfile,
 } from "@/lib/career";
 import { ymGoal } from "@/lib/metrica";
 import {
@@ -24,7 +28,7 @@ import {
 
 const M = {
   en: {
-    yourApplication: "Your application", fullName: "Full name", fullNamePh: "e.g. Budi Santoso",
+    yourApplication: "Your application", aboutYou: "About you (optional)", fullName: "Full name", fullNamePh: "e.g. Budi Santoso",
     whatsapp: "WhatsApp number", whatsappPh: "08123456789", whatsappHint: "We'll send updates here.",
     email: "Email", emailOpt: "optional", documents: "Documents", required: "required", optional: "optional",
     choose: "📎 Choose file", replace: "Replace", fromVault: "📁 From my vault", pending: "Not uploaded",
@@ -45,7 +49,7 @@ const M = {
     vaultPick: "Attach from vault", vaultEmpty: "No documents in your vault yet.", close: "Close", attaching: "Attaching…",
   },
   id: {
-    yourApplication: "Lamaran Anda", fullName: "Nama lengkap", fullNamePh: "mis. Budi Santoso",
+    yourApplication: "Lamaran Anda", aboutYou: "Tentang Anda (opsional)", fullName: "Nama lengkap", fullNamePh: "mis. Budi Santoso",
     whatsapp: "Nomor WhatsApp", whatsappPh: "08123456789", whatsappHint: "Kami kirim kabar ke sini.",
     email: "Email", emailOpt: "opsional", documents: "Dokumen", required: "wajib", optional: "opsional",
     choose: "📎 Pilih berkas", replace: "Ganti", fromVault: "📁 Dari brankas", pending: "Belum diunggah",
@@ -66,7 +70,7 @@ const M = {
     vaultPick: "Lampirkan dari brankas", vaultEmpty: "Belum ada dokumen di brankas Anda.", close: "Tutup", attaching: "Melampirkan…",
   },
   ru: {
-    yourApplication: "Ваш отклик", fullName: "Имя и фамилия", fullNamePh: "напр. Budi Santoso",
+    yourApplication: "Ваш отклик", aboutYou: "О себе (по желанию)", fullName: "Имя и фамилия", fullNamePh: "напр. Budi Santoso",
     whatsapp: "Номер WhatsApp", whatsappPh: "08123456789", whatsappHint: "Сюда пришлём обновления.",
     email: "Email", emailOpt: "необязательно", documents: "Документы", required: "обязательно", optional: "необязательно",
     choose: "📎 Выбрать файл", replace: "Заменить", fromVault: "📁 Из хранилища", pending: "Не загружен",
@@ -87,7 +91,7 @@ const M = {
     vaultPick: "Прикрепить из хранилища", vaultEmpty: "В вашем хранилище пока нет документов.", close: "Закрыть", attaching: "Прикрепляю…",
   },
   uz: {
-    yourApplication: "Arizangiz", fullName: "To‘liq ism", fullNamePh: "mas. Budi Santoso",
+    yourApplication: "Arizangiz", aboutYou: "O‘zingiz haqingizda (ixtiyoriy)", fullName: "To‘liq ism", fullNamePh: "mas. Budi Santoso",
     whatsapp: "WhatsApp raqami", whatsappPh: "08123456789", whatsappHint: "Yangiliklarni shu yerga yuboramiz.",
     email: "Email", emailOpt: "ixtiyoriy", documents: "Hujjatlar", required: "majburiy", optional: "ixtiyoriy",
     choose: "📎 Fayl tanlash", replace: "Almashtirish", fromVault: "📁 Xotiradan", pending: "Yuklanmagan",
@@ -116,6 +120,15 @@ type Picked =
 
 function safeName(name: string): string {
   return name.replace(/[^\w.\-]+/g, "_") || "file";
+}
+
+function cleanProfile(p: CandidateProfile): CandidateProfile {
+  const out: CandidateProfile = {};
+  for (const k of Object.keys(p) as (keyof CandidateProfile)[]) {
+    const v = (p[k] ?? "").trim();
+    if (v) out[k] = v;
+  }
+  return out;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,6 +166,7 @@ export default function ApplyForm({
   const [picked, setPicked] = useState<Record<number, Picked>>({});
   const [docStatus, setDocStatus] = useState<Record<number, UploadState>>({});
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [profile, setProfile] = useState<CandidateProfile>({});
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -332,6 +346,7 @@ export default function ApplyForm({
         turnstileToken: token,
         answers: answerPayload,
         documents: uploaded,
+        profile: cleanProfile(profile),
         docsComplete: requiredDone,
         docsTotal: requiredTotal,
       });
@@ -485,6 +500,35 @@ export default function ApplyForm({
           ))}
         </div>
       )}
+
+      {/* About you (all optional) */}
+      <details className="rounded-lg border border-slate-200 bg-white p-3">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">{t.aboutYou}</summary>
+        <div className="mt-3 space-y-3">
+          {PROFILE_FIELDS.map((f) => (
+            <div key={f.key}>
+              <label className="mb-1 block text-xs text-slate-500">{profileFieldLabel(locale, f.key)}</label>
+              {f.kind === "textarea" ? (
+                <textarea
+                  rows={2}
+                  className="input"
+                  value={profile[f.key] ?? ""}
+                  onChange={(e) => { markStarted(); setProfile((p) => ({ ...p, [f.key]: e.target.value })); }}
+                />
+              ) : (
+                <input
+                  className="input"
+                  type={isUrlField(f.key) ? "url" : "text"}
+                  inputMode={isUrlField(f.key) ? "url" : undefined}
+                  placeholder={isUrlField(f.key) ? "https://…" : undefined}
+                  value={profile[f.key] ?? ""}
+                  onChange={(e) => { markStarted(); setProfile((p) => ({ ...p, [f.key]: e.target.value })); }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </details>
 
       <label className="flex items-start gap-2 rounded-lg bg-brand-50/50 p-3 text-sm text-slate-700">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />

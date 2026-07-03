@@ -7,9 +7,13 @@ import {
   waLink,
   normalizeWhatsapp,
   sourceLabel,
+  PROFILE_FIELDS,
+  profileFieldLabel,
+  isUrlField,
   type ApplicationStatus,
   type RequiredDocument,
   type Source,
+  type CandidateProfile,
 } from "@/lib/career";
 import { setApplicationStatus, signApplicationDoc } from "@/app/employer/actions";
 
@@ -22,6 +26,7 @@ export type BoardApp = {
   email: string | null;
   status: ApplicationStatus;
   source: Source;
+  profile: CandidateProfile;
   created_at: string;
   documents: BoardDoc[];
   answers: BoardAnswer[];
@@ -37,7 +42,7 @@ const M = {
     shortlist: "Shortlist", reject: "Reject", whatsapp: "WhatsApp", requestDoc: "Request doc",
     stNew: "New", stViewed: "Viewed", stShortlisted: "Shortlisted", stRejected: "Rejected",
     funnel: (opens: number, apps: number, pct: string) => `Link opens: ${opens} → Applications: ${apps} (${pct}%)`,
-    pickDocTitle: "Which document to request?", close: "Close",
+    pickDocTitle: "Which document to request?", close: "Close", about: "About", completeLabel: "Complete", sortNewest: "Newest", sortComplete: "Most complete",
     reqMsg: (name: string, title: string, company: string, doc: string) =>
       `Hello ${name}! Your application for ${title} at ${company} is missing: ${doc}. Please send it here to complete your application.`,
   },
@@ -48,7 +53,7 @@ const M = {
     shortlist: "Pilih", reject: "Tolak", whatsapp: "WhatsApp", requestDoc: "Minta dokumen",
     stNew: "Baru", stViewed: "Dilihat", stShortlisted: "Terpilih", stRejected: "Ditolak",
     funnel: (opens: number, apps: number, pct: string) => `Kunjungan tautan: ${opens} → Lamaran: ${apps} (${pct}%)`,
-    pickDocTitle: "Dokumen mana yang diminta?", close: "Tutup",
+    pickDocTitle: "Dokumen mana yang diminta?", close: "Tutup", about: "Tentang", completeLabel: "Lengkap", sortNewest: "Terbaru", sortComplete: "Paling lengkap",
     reqMsg: (name: string, title: string, company: string, doc: string) =>
       `Halo ${name}! Lamaran Anda untuk ${title} di ${company} belum lengkap: ${doc}. Silakan kirim dokumen tersebut di sini.`,
   },
@@ -59,7 +64,7 @@ const M = {
     shortlist: "В шортлист", reject: "Отклонить", whatsapp: "WhatsApp", requestDoc: "Запросить док.",
     stNew: "Новый", stViewed: "Просмотрен", stShortlisted: "Отобран", stRejected: "Отклонён",
     funnel: (opens: number, apps: number, pct: string) => `Переходы: ${opens} → Отклики: ${apps} (${pct}%)`,
-    pickDocTitle: "Какой документ запросить?", close: "Закрыть",
+    pickDocTitle: "Какой документ запросить?", close: "Закрыть", about: "О кандидате", completeLabel: "Заполнено", sortNewest: "Новые", sortComplete: "Полнее",
     reqMsg: (name: string, title: string, company: string, doc: string) =>
       `Здравствуйте, ${name}! В вашем отклике на «${title}» в ${company} не хватает: ${doc}. Пришлите его сюда, чтобы завершить заявку.`,
   },
@@ -70,7 +75,7 @@ const M = {
     shortlist: "Tanlash", reject: "Rad etish", whatsapp: "WhatsApp", requestDoc: "Hujjat so‘rash",
     stNew: "Yangi", stViewed: "Ko‘rilgan", stShortlisted: "Tanlangan", stRejected: "Rad etilgan",
     funnel: (opens: number, apps: number, pct: string) => `Havola ochilishi: ${opens} → Arizalar: ${apps} (${pct}%)`,
-    pickDocTitle: "Qaysi hujjat so‘ralsin?", close: "Yopish",
+    pickDocTitle: "Qaysi hujjat so‘ralsin?", close: "Yopish", about: "Nomzod haqida", completeLabel: "To‘ldirilgan", sortNewest: "Yangi", sortComplete: "To‘liqroq",
     reqMsg: (name: string, title: string, company: string, doc: string) =>
       `Salom, ${name}! ${company}dagi ${title} uchun arizangizda yetishmaydi: ${doc}. Iltimos, uni shu yerga yuboring.`,
   },
@@ -101,6 +106,7 @@ export default function ApplicationsBoard({
   companyName,
   viewsCount,
   requiredDocs,
+  screeningCount,
   initialApplications,
 }: {
   locale: Locale;
@@ -109,11 +115,13 @@ export default function ApplicationsBoard({
   companyName: string;
   viewsCount: number;
   requiredDocs: RequiredDocument[];
+  screeningCount: number;
   initialApplications: BoardApp[];
 }) {
   const t = M[locale];
   const [apps, setApps] = useState<BoardApp[]>(initialApplications);
   const [filter, setFilter] = useState<Filter>("all");
+  const [sortMode, setSortMode] = useState<"newest" | "complete">("newest");
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [reqDocFor, setReqDocFor] = useState<BoardApp | null>(null);
 
@@ -121,6 +129,22 @@ export default function ApplicationsBoard({
   const hasType = (app: BoardApp, type: string) => app.documents.some((d) => d.type === type);
   const isComplete = (app: BoardApp) => requiredOnly.every((d) => hasType(app, d.type));
   const missingDocs = (app: BoardApp) => requiredOnly.filter((d) => !hasType(app, d.type));
+
+  // Балл полноты (Ступень 1, без ИИ): документы 50% + ответы 25% + профиль 25%.
+  const completeness = (app: BoardApp) => {
+    const docsScore = requiredOnly.length
+      ? requiredOnly.filter((d) => hasType(app, d.type)).length / requiredOnly.length
+      : 1;
+    const answered = app.answers.filter((a) => (a.answer ?? "").trim()).length;
+    const answersScore = screeningCount ? Math.min(answered, screeningCount) / screeningCount : 1;
+    const filled = PROFILE_FIELDS.filter(
+      (f) => ((app.profile?.[f.key] ?? "") as string).trim()
+    ).length;
+    const profileScore = filled / PROFILE_FIELDS.length;
+    return Math.round(100 * (0.5 * docsScore + 0.25 * answersScore + 0.25 * profileScore));
+  };
+  const profileEntries = (app: BoardApp) =>
+    PROFILE_FIELDS.map((f) => ({ f, v: ((app.profile?.[f.key] ?? "") as string).trim() })).filter((x) => x.v);
 
   const stats = useMemo(() => {
     let nw = 0, sl = 0, rj = 0;
@@ -150,6 +174,12 @@ export default function ApplicationsBoard({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apps, filter]);
+
+  const visible = useMemo(() => {
+    if (sortMode === "complete") return [...filtered].sort((a, b) => completeness(b) - completeness(a));
+    return filtered;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortMode]);
 
   async function changeStatus(id: string, status: ApplicationStatus) {
     const prev = apps;
@@ -232,14 +262,24 @@ export default function ApplicationsBoard({
         ))}
       </div>
 
+      {/* Sort */}
+      <div className="mb-3 flex gap-3 text-sm">
+        {([["newest", t.sortNewest], ["complete", t.sortComplete]] as const).map(([k, label]) => (
+          <button key={k} type="button" onClick={() => setSortMode(k)}
+            className={sortMode === k ? "font-medium text-brand-600" : "text-slate-500 hover:text-slate-800"}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Cards */}
-      {filtered.length === 0 ? (
+      {visible.length === 0 ? (
         <p className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
           {t.empty}
         </p>
       ) : (
         <ul className="space-y-3">
-          {filtered.map((a) => {
+          {visible.map((a) => {
             const missing = missingDocs(a);
             return (
               <li key={a.id} className="card">
@@ -249,6 +289,9 @@ export default function ApplicationsBoard({
                     <p className="text-xs text-slate-400">{timeAgo(a.created_at, locale)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
+                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                      {completeness(a)}% {t.completeLabel}
+                    </span>
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
                       {sourceLabel(a.source)}
                     </span>
@@ -285,6 +328,31 @@ export default function ApplicationsBoard({
                       </div>
                     ))}
                   </dl>
+                )}
+
+                {profileEntries(a).length > 0 && (
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <p className="mb-1 text-xs font-medium text-slate-500">{t.about}</p>
+                    <ul className="space-y-0.5 text-sm">
+                      {profileEntries(a).map(({ f, v }) => (
+                        <li key={f.key} className="flex gap-1">
+                          <span className="shrink-0 text-xs text-slate-400">{profileFieldLabel(locale, f.key)}:</span>
+                          {isUrlField(f.key) ? (
+                            <a
+                              href={/^https?:\/\//.test(v) ? v : `https://${v}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="truncate text-brand-600 hover:underline"
+                            >
+                              {v}
+                            </a>
+                          ) : (
+                            <span className="text-slate-700">{v}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
                 <div className="mt-4 flex flex-wrap gap-2">

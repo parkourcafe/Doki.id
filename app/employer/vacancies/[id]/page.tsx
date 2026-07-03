@@ -47,7 +47,7 @@ export default async function VacancyDashboard({
 
   const { data: appData } = await supabase
     .from("applications")
-    .select("id, full_name, whatsapp, email, status, source, created_at")
+    .select("id, full_name, whatsapp, email, status, source, profile, created_at")
     .eq("vacancy_id", vacancy.id)
     .order("created_at", { ascending: false });
   const rows = (appData ?? []) as Omit<BoardApp, "documents" | "answers">[];
@@ -146,6 +146,7 @@ export default async function VacancyDashboard({
         companyName={vacancy.company_name}
         viewsCount={vacancy.views_count ?? 0}
         requiredDocs={vacancy.required_documents ?? []}
+        screeningCount={(vacancy.screening_questions ?? []).length}
         initialApplications={applications}
       />
     </div>

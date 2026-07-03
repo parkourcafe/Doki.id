@@ -4,6 +4,7 @@ import { getLocale } from "@/lib/i18n";
 import { parseSource, type Vacancy } from "@/lib/career";
 import { getCandidatePrefill } from "../actions";
 import ApplyForm from "./ApplyForm";
+import LangSwitcher from "@/components/LangSwitcher";
 
 // Apply-страница раздаётся прямой ссылкой (WhatsApp/QR), не через поиск.
 export const metadata = {
@@ -98,6 +99,9 @@ export default async function ApplyPage({
 
   return (
     <Shell>
+      <div className="mb-3 flex justify-end">
+        <LangSwitcher current={locale} />
+      </div>
       <div className="card">
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-100 text-base font-semibold text-brand-700">
